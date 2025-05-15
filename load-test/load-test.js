@@ -10,8 +10,8 @@
 // or failing, and it provides insight into its reliability under steady pressure.
 import http from 'k6/http';
 import { sleep, check } from 'k6';
-import dotenv from 'dotenv';
 
+const dotenv = require('dotenv');
 dotenv.config();
 const baseUrl = process.env.STAGING_API_URL;
 

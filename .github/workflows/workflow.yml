@@ -171,8 +171,6 @@ jobs:
             GH_REPO=${{ vars.GH_REPO }}
             API_PORT=${{ vars.API_PORT }}
             REACT_PORT=${{ vars.REACT_PORT }}
-            STAGING_API_URL=${{ vars.STAGING_API_URL }}
-            STAGING_REACT_URL=${{ vars.STAGING_REACT_URL }}
             SEQ_LOG_RECIEVER_PORT=${{ vars.SEQ_LOG_RECIEVER_PORT }}
             SEQ_WEB_INTERFACE_PORT=${{ vars.SEQ_WEB_INTERFACE_PORT }}
             ZIPKIN_PORT=${{ vars.ZIPKIN_PORT }}
@@ -204,6 +202,18 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
+      - name: Install dotenv
+        run: |
+          npm init -y
+          npm install dotenv
+
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          STAGING_API_URL=${{ vars.STAGING_API_URL }}
+          STAGING_REACT_URL=${{ vars.STAGING_REACT_URL }}
+          EOF
 
       - name: Install Google Chrome
         run: |
