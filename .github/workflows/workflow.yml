@@ -176,7 +176,6 @@ jobs:
             SEQ_LOG_RECIEVER_PORT=${{ vars.SEQ_LOG_RECIEVER_PORT }}
             SEQ_WEB_INTERFACE_PORT=${{ vars.SEQ_WEB_INTERFACE_PORT }}
             ZIPKIN_PORT=${{ vars.ZIPKIN_PORT }}
-            SEQ_PORT=${{ vars.SEQ_PORT }}
             ZIPKIN_URL=${{ vars.ZIPKIN_URL }}
             LOG_LEVEL=${{ vars.LOG_LEVEL }}
             EOF
