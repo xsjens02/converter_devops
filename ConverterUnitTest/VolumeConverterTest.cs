@@ -184,7 +184,7 @@ public class VolumeConverterTest
         var result = converter.VolumeAsPercentage(1, EVolumeUnit.Centiliter, 1, EVolumeUnit.Liter);
 
         // Assert
-        Assert.That(result, Is.EqualTo(10)); 
+        Assert.That(result, Is.EqualTo(1.0)); 
     }
     
     [Test]
