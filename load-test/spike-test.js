@@ -6,6 +6,7 @@
 // times and failure rates, will be monitored to determine how well it can manage short-term bursts in load.
 import http from 'k6/http';
 import { sleep, check } from 'k6';
+import dotenv from 'dotenv';
 
 dotenv.config();
 const baseUrl = process.env.STAGING_REACT_URL;

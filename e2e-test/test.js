@@ -1,4 +1,5 @@
 import { Selector } from 'testcafe';
+import dotenv from 'dotenv';
 
 dotenv.config(); 
 const baseUrl = process.env.STAGING_REACT_URL;
