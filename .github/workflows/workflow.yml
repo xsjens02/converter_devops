@@ -103,8 +103,8 @@ jobs:
           docker build \
             -t ghcr.io/${{ github.repository }}-react:staging \
             -t ghcr.io/${{ github.repository }}-react:${{ steps.semver-app.outputs.version }} \
-            -f calculator-react/Dockerfile \
-            calculator-react/
+            -f converter-react/Dockerfile \
+            converter-react/
           docker push ghcr.io/${{ github.repository }}-react:staging
           docker push ghcr.io/${{ github.repository }}-react:${{ steps.semver-app.outputs.version }}
 
