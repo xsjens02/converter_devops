@@ -11,9 +11,7 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-const dotenv = require('dotenv');
-dotenv.config();
-const baseUrl = process.env.STAGING_API_URL;
+const baseUrl = 'http://79.76.48.213:5000';
 
 export const options = {
     insecureSkipTLSVerify: true,

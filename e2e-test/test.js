@@ -1,12 +1,8 @@
 import { Selector } from 'testcafe';
 
-const dotenv = require('dotenv');
-dotenv.config(); 
-const baseUrl = process.env.STAGING_REACT_URL;
-
 // Define the test fixture and set the start URL
 fixture('Converter E2E tests')
-    .page(baseUrl);
+    .page('http://79.76.48.213:3000');
 
 // === Selector utilities ===
 

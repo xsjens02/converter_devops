@@ -203,18 +203,6 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dotenv
-        run: |
-          npm init -y
-          npm install dotenv
-
-      - name: Create .env file
-        run: |
-          cat <<EOF > .env
-          STAGING_API_URL=${{ vars.STAGING_API_URL }}
-          STAGING_REACT_URL=${{ vars.STAGING_REACT_URL }}
-          EOF
-
       - name: Install Google Chrome
         run: |
           sudo apt-get update
