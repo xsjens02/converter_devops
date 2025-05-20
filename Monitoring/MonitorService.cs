@@ -44,7 +44,7 @@ public abstract class MonitorService
         }
         TracerProvider = tracerBuilder.Build();
         
-        // Configure Serilog logging
+        // Configure Serilog logging 
         var logLevel = Environment.GetEnvironmentVariable("LOG_LEVEL");
         var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Is(IsValidLogLevel(logLevel!)) // Log level
