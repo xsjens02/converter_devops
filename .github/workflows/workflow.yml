@@ -29,7 +29,7 @@ jobs:
             /d:sonar.coverageReportPaths="coverage-report/SonarQube.xml" \
             /d:sonar.qualitygate.wait=true \
             /d:sonar.qualitygate.timeout=300 \
-            /d:sonar.exclusions="converter-react/**,e2e-test/**,load-test/**" \
+            /d:sonar.exclusions="converter-react/**,e2e-test/**,load-test/**,Monitoring/**" \
             /d:sonar.coverage.exclusions="converter-react/**,e2e-test/**,load-test/**,ConverterAPI/**,Monitoring/**,FeatureToggle/**"
 
       - name: Run unit tests
