@@ -1,0 +1,5 @@
+CREATE TABLE tblConverterLogs (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    action VARCHAR(150) NOT NULL,
+    result VARCHAR(150) NOT NULL
+);

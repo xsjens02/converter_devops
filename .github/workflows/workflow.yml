@@ -1,0 +1,228 @@
+name: workflow.yml
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install required tools
+        run: |
+          dotnet tool install -g dotnet-sonarscanner
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          dotnet tool install -g dotnet-stryker
+
+      - name: Start Static Code Analysis
+        run: |
+          dotnet sonarscanner begin \
+            /k:"${{ vars.SONAR_PROJECTKEY }}" \
+            /d:sonar.host.url="${{ vars.SONAR_URL }}" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.coverageReportPaths="coverage-report/SonarQube.xml" \
+            /d:sonar.qualitygate.wait=true \
+            /d:sonar.qualitygate.timeout=300 \
+            /d:sonar.exclusions="converter-react/**,e2e-test/**,load-test/**,ConverterAPI/**,Monitoring/**,FeatureToggle/**" \
+            /d:sonar.coverage.exclusions="converter-react/**,e2e-test/**,load-test/**,ConverterAPI/**,Monitoring/**,FeatureToggle/**"
+
+      - name: Run unit tests
+        run: dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Generate report
+        if: always()
+        run: reportgenerator \
+          -reports:"TestResults/**/coverage.cobertura.xml" \
+          -targetdir:coverage-report \
+          -reporttypes:SonarQube
+
+      - name: Complete Static Code Analysis
+        run: |
+          dotnet sonarscanner end \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+      - name: Run Mutation Tests
+        if: always()
+        run: dotnet stryker
+
+      - name: Collect Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CoverageReport
+          path: coverage-report/
+
+      - name: Collect Stryker Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: StrykerReport
+          path: StrykerOutput/**/reports/
+
+  deployment-staging:
+    needs: [integration-tests]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Application Version
+        id: semver-app
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          bump_each_commit: true
+
+      - name: Login GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push API Image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository }}-api:staging \
+            -t ghcr.io/${{ github.repository }}-api:${{ steps.semver-app.outputs.version }} \
+            -f Dockerfile \
+            .
+          docker push ghcr.io/${{ github.repository }}-api:staging
+          docker push ghcr.io/${{ github.repository }}-api:${{ steps.semver-app.outputs.version }}
+
+      - name: Build and Push React Image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository }}-react:staging \
+            -t ghcr.io/${{ github.repository }}-react:${{ steps.semver-app.outputs.version }} \
+            -f converter-react/Dockerfile \
+            converter-react/
+          docker push ghcr.io/${{ github.repository }}-react:staging
+          docker push ghcr.io/${{ github.repository }}-react:${{ steps.semver-app.outputs.version }}
+
+      - name: Create release notes
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.semver-app.outputs.version }}
+          generateReleaseNotes: true
+          body: |
+            This release includes the following container images:
+            - API: ghcr.io/${{ github.repository }}-api:${{ steps.semver-app.outputs.version }}
+            - React: ghcr.io/${{ github.repository }}-react:${{ steps.semver-app.outputs.version }}
+
+      - name: Log generated version
+        if: always()
+        run: |
+          echo "Generated version: ${{ steps.semver-app.outputs.version }}"
+
+      - name: Clear Docker instances on staging server
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ vars.STAGING_SERVER_IP }}
+          username: ${{ vars.STAGING_SERVER_USERNAME }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          script: |
+            cd dowa
+            docker compose down
+            docker image prune -af
+            docker volume prune -af
+
+      - name: Deliver Docker Compose file to staging
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.STAGING_SERVER_IP }}
+          username: ${{ vars.STAGING_SERVER_USERNAME }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: dowa/
+
+      - name: Deliver Flyway Migrations to staging
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.STAGING_SERVER_IP }}
+          username: ${{ vars.STAGING_SERVER_USERNAME }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          source: "db/migrations/*"
+          target: dowa/
+
+      - name: Create .env on staging
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ vars.STAGING_SERVER_IP }}
+          username: ${{ vars.STAGING_SERVER_USERNAME }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          script: |
+            cd dowa
+            cat <<EOF > .env
+            MYSQL_ROOT_PWD=${{ secrets.MYSQL_ROOT_PWD }}
+            MYSQL_DB=${{ vars.MYSQL_DB }}
+            MYSQL_USER=${{ vars.MYSQL_USER }}
+            MYSQL_PWD=${{ secrets.MYSQL_PWD }}
+            FLYWAY_URL=${{ vars.FLYWAY_URL }}
+            DB_CON_STR=${{ secrets.DB_CON_STR }}
+            GH_REPO=${{ vars.GH_REPO }}
+            API_PORT=${{ vars.API_PORT }}
+            REACT_PORT=${{ vars.REACT_PORT }}
+            SEQ_LOG_RECIEVER_PORT=${{ vars.SEQ_LOG_RECIEVER_PORT }}
+            SEQ_WEB_INTERFACE_PORT=${{ vars.SEQ_WEB_INTERFACE_PORT }}
+            ZIPKIN_PORT=${{ vars.ZIPKIN_PORT }}
+            SEQ_URL=${{ vars.SEQ_URL }}
+            ZIPKIN_URL=${{ vars.ZIPKIN_URL }}
+            LOG_LEVEL=${{ vars.LOG_LEVEL }}
+            EOF
+
+      - name: Run Docker Compose on staging server
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ vars.STAGING_SERVER_IP }}
+          username: ${{ vars.STAGING_SERVER_USERNAME }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          script: |
+            cd dowa
+            docker compose up -d
+
+  staging-tests:
+    needs: [deployment-staging]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run E2E tests with TestCafe
+        uses: DevExpress/testcafe-action@latest
+        with:
+          args: "chrome e2e-test/test.js"
+
+      - name: Run Spike test
+        uses: grafana/run-k6-action@v1
+        with:
+          path: load-test/spike-test.js
+
+      - name: Run Load test
+        uses: grafana/run-k6-action@v1
+        with:
+          path: load-test/load-test.js

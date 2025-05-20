@@ -1,0 +1,77 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1e2a38;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.converter-container {
+    display: flex;
+    align-items: center;
+    color: #f0f0f0;
+}
+
+.converter-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.converter-selection {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.converter-form-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+.form.simple {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 2rem;
+}
+
+.form.dual,
+.form.scale,
+.form.percentage {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 2rem;
+}
+
+.percentage .thirdcolumn,
+.scale .secondcolumn {
+    align-self: flex-end;
+}
+
+.custom-option-field,
+.custom-input-field,
+.custom-result-field {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+select,
+input[type="text"] {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    width: 100%;
+}
+
+input[readonly] {
+    pointer-events: none;
+    background-color: #444;
+    color: #ccc;
+    cursor: default;
+    border: 1px solid #666;
+}
