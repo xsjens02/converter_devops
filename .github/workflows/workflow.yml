@@ -4,22 +4,30 @@ on:
     branches:
       - main
 
+# This job ensures code quality and correctness by running:
+# - Static code analysis with SonarQube
+# - Unit tests with code coverage collection
+# - Mutation tests using Stryker to evaluate test robustness
+# Results are uploaded as artifacts for review.
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
     
+    # Checkout code to run tests on
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Install code quality and mutation testing tools
       - name: Install required tools
         run: |
           dotnet tool install -g dotnet-sonarscanner
           dotnet tool install -g dotnet-reportgenerator-globaltool
           dotnet tool install -g dotnet-stryker
 
+      # Begin static code analysis with SonarScanner
       - name: Start Static Code Analysis
         run: |
           dotnet sonarscanner begin \
@@ -32,9 +40,11 @@ jobs:
             /d:sonar.exclusions="converter-react/**,e2e-test/**,load-test/**,Monitoring/**" \
             /d:sonar.coverage.exclusions="converter-react/**,e2e-test/**,load-test/**,ConverterAPI/**,Monitoring/**,FeatureToggle/**"
 
+      # Run unit tests and collect coverage
       - name: Run unit tests
         run: dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults
-
+      
+      # Generate a SonarQube-compatible code coverage report
       - name: Generate report
         if: always()
         run: reportgenerator \
@@ -42,15 +52,18 @@ jobs:
           -targetdir:coverage-report \
           -reporttypes:SonarQube
 
+      # End static analysis and upload results to SonarQube
       - name: Complete Static Code Analysis
         run: |
           dotnet sonarscanner end \
             /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
+      # Run mutation tests using Stryker
       - name: Run Mutation Tests
         if: always()
         run: dotnet stryker
 
+      # Upload code coverage report as an artifact
       - name: Collect Coverage Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,29 +71,39 @@ jobs:
           name: CoverageReport
           path: coverage-report/
 
+      # Upload mutation test results as an artifact
       - name: Collect Stryker Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: StrykerReport
           path: StrykerOutput/**/reports/
-
+    
+  # This job builds Docker images for both the API and React app,
+  # tags them with a semantic version, and pushes them to GHCR.
+  # It then securely deploys the app to a remote staging server using SSH and SCP:
+  # - Stops old containers and cleans up Docker
+  # - Uploads Docker Compose and environment files
+  # - Runs docker-compose to launch the updated containers
   deployment-staging:
     needs: [integration-tests]
     runs-on: ubuntu-latest
     
+    # Checkout code to prepare for build
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Generate a semantic version based on commit history
       - name: Application Version
         id: semver-app
         uses: paulhatch/semantic-version@v5.4.0
         with:
           bump_each_commit: true
 
+      # Log in to GitHub Container Registry (GHCR)
       - name: Login GHCR
         uses: docker/login-action@v2
         with:
@@ -88,6 +111,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Build and push API Docker image with both "staging" and version tags
       - name: Build and Push API Image
         run: |
           docker build \
@@ -98,6 +122,7 @@ jobs:
           docker push ghcr.io/${{ github.repository }}-api:staging
           docker push ghcr.io/${{ github.repository }}-api:${{ steps.semver-app.outputs.version }}
 
+      # Build and push React Docker image with both "staging" and version tags
       - name: Build and Push React Image
         run: |
           docker build \
@@ -108,6 +133,7 @@ jobs:
           docker push ghcr.io/${{ github.repository }}-react:staging
           docker push ghcr.io/${{ github.repository }}-react:${{ steps.semver-app.outputs.version }}
 
+      # Create GitHub release with release notes for this version
       - name: Create release notes
         uses: ncipollo/release-action@v1
         with:
@@ -118,11 +144,13 @@ jobs:
             - API: ghcr.io/${{ github.repository }}-api:${{ steps.semver-app.outputs.version }}
             - React: ghcr.io/${{ github.repository }}-react:${{ steps.semver-app.outputs.version }}
 
+      # Log the generated semantic version for debugging
       - name: Log generated version
         if: always()
         run: |
           echo "Generated version: ${{ steps.semver-app.outputs.version }}"
 
+      # SSH into the staging server, stop running containers, and clean up Docker resources
       - name: Clear Docker instances on staging server
         uses: appleboy/ssh-action@v1.2.1
         with:
@@ -135,6 +163,7 @@ jobs:
             docker image prune -af
             docker volume prune -af
 
+      # Copy docker-compose file to the staging server
       - name: Deliver Docker Compose file to staging
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -144,6 +173,7 @@ jobs:
           source: "docker-compose.yml"
           target: dowa/
 
+      # Copy Flyway database migrations to staging
       - name: Deliver Flyway Migrations to staging
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -153,6 +183,7 @@ jobs:
           source: "db/migrations/*"
           target: dowa/
 
+      # Dynamically generate the .env file on the staging server
       - name: Create .env on staging
         uses: appleboy/ssh-action@v1.2.1
         with:
@@ -179,6 +210,7 @@ jobs:
             LOG_LEVEL=${{ vars.LOG_LEVEL }}
             EOF
 
+      # Start containers using docker-compose on the staging server
       - name: Run Docker Compose on staging server
         uses: appleboy/ssh-action@v1.2.1
         with:
@@ -189,39 +221,44 @@ jobs:
             cd dowa
             docker compose up -d
 
+  # This job validates the staging deployment by:
+  # - Running end-to-end tests with TestCafe in a real browser (Chrome)
+  # - Running spike and load tests using Grafana k6
+  # These tests simulate real-world usage and measure system stability under load.
   staging-tests:
     needs: [deployment-staging]
     runs-on: ubuntu-latest
     
+    # Checkout code for test step context
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
+      # Install Google Chrome for E2E tests
       - name: Install Google Chrome
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
+      # Set up Grafana's k6 for load testing
       - name: Setup k6
         uses: grafana/setup-k6-action@v1
 
+      # Run end-to-end tests using TestCafe
       - name: Run E2E tests with TestCafe
         uses: DevExpress/testcafe-action@latest
         with:
           args: "chrome e2e-test/test.js"
 
+      # Run spike test with k6
       - name: Run Spike test
         uses: grafana/run-k6-action@v1
         with:
           path: load-test/spike-test.js
 
+      # Run load test with k6
       - name: Run Load test
         uses: grafana/run-k6-action@v1
         with:
