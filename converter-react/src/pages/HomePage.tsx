@@ -4,6 +4,7 @@ import "./HomePage.css"
 const HomePage = () => {
     const navigate = useNavigate();
 
+    // Render the homepage UI
     return (
         <div className="home-container">
             <h1 className="home-title">Choose from these two options:</h1>

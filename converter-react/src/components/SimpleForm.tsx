@@ -1,18 +1,21 @@
 import { CustomInput } from "./CustomInput";
 import { CustomOption } from "./CustomOption";
 import { CustomResult } from "./CustomResult";
+
+// Define the props for the SimpleForm component
 interface SimpleFormProps {
-    from: string;
-    to: string;
-    fromValue: string;
-    onChangeFrom: (val: string) => void;
-    onChangeTo: (val: string) => void;
-    unitTypes: string[];
-    onChangeValue: (val: string) => void;
-    result: string;
-    className?: string;
+    from: string; // Selected 'from' unit
+    to: string; // Selected 'to' unit
+    fromValue: string; // Input value to convert
+    onChangeFrom: (val: string) => void; // Handler for changing 'from' unit
+    onChangeTo: (val: string) => void; // Handler for changing 'to' unit
+    unitTypes: string[]; // Available unit options
+    onChangeValue: (val: string) => void; // Handler for input value change
+    result: string; // Conversion result
+    className?: string; // Optional custom class for styling
 }
 
+// Component for rendering a simple unit conversion form
 export const SimpleForm: React.FC<SimpleFormProps> = ({ 
       from, 
       to, 

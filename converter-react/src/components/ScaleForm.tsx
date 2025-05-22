@@ -1,20 +1,23 @@
 import { CustomInput } from "./CustomInput";
 import { CustomOption } from "./CustomOption";
 import { CustomResult } from "./CustomResult";
+
+// Define the props expected by the ScaleForm component
 interface ScaleFormProps {
-    from: string;
-    to: string;
-    onChangeFrom: (val: string) => void;
-    onChangeTo: (val: string) => void;
-    unitTypes: string[];
-    value: string;
-    onChangeValue: (val: string) => void;
-    factor: string;
-    onChangeFactor: (val: string) => void;
-    result: string;
-    className?: string;
+    from: string; // Selected unit to scale from
+    to: string; // Selected unit to scale to
+    onChangeFrom: (val: string) => void; // Handler for changing the 'from' unit
+    onChangeTo: (val: string) => void; // Handler for changing the 'to' unit
+    unitTypes: string[]; // List of available unit options
+    value: string; // Input value to be scaled
+    onChangeValue: (val: string) => void; // Handler for changing the input value
+    factor: string; // Scaling factor to apply
+    onChangeFactor: (val: string) => void; // Handler for changing the scaling factor
+    result: string; // Final scaled result
+    className?: string; // Optional custom class for styling
 }
 
+// Component to render a form for scaling a value between units using a factor
 export const ScaleForm: React.FC<ScaleFormProps> = ({ 
     from,
     to,

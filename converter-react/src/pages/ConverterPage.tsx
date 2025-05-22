@@ -15,23 +15,27 @@ import "./ConverterPage.css";
 const ConverterPage = () => {
     const navigate = useNavigate();
 
+    // State for unit options
     const [volumeUnits, setVolumeUnits] = useState<UnitOption[]>([]);
     const [weightUnits, setWeightUnits] = useState<UnitOption[]>([]);
 
+    // State for converter and function selection
     const [converterOptions, setConverterOptions] = useState<ConverterTypeOption[]>([]);
     const [selectedConverter, setSelectedConverter] = useState<string>("");
     const [functionOptions, setFunctionOptions] = useState<FunctionOption[]>([]);
     const [selectedFunction, setSelectedFunction] = useState<string>("");
-    
+
+    // State for units and input values
     const [firstUnit, setFirstUnit] = useState<string>("");
     const [secondUnit, setSecondUnit] = useState<string>("");
     const [resultUnit, setResultUnit] = useState<string>("");
-    
     const [firstInput, setFirstInput] = useState<string>("");
     const [secondInput, setSecondInput] = useState<string>("");
-    
+
+    // State for the result value
     const [result, setResult] = useState<string>("");
 
+    // Fetch available converters, units and functions from API
     const fetchEnums = async () => {
         const data = await ConverterService.getEnums();
         setVolumeUnits(data.volumeUnits);
@@ -40,10 +44,12 @@ const ConverterPage = () => {
         setConverterOptions(data.converterTypes);
     };
 
+    // Fetch data on initial render
     useEffect(() => {
         fetchEnums();
     }, []);
-    
+
+    // Reset all form fields and result
     const resetAllFields = () => {
         setFirstUnit("");
         setSecondUnit("");
@@ -52,13 +58,14 @@ const ConverterPage = () => {
         setSecondInput("");
         setResult("");
     };
-    
 
+    // Helper to get unit index based on selected converter
     const getIndexValue = (unitName: string): number => {
         const allUnits = selectedConverter === "Volume" ? volumeUnits : weightUnits;
         return allUnits.find(u => u.name === unitName)?.value ?? -1;
     };
 
+    // Validate that all required input fields are filled based on the selected function
     const isInputValid = (): boolean => {
         if (!selectedConverter || !selectedFunction || !firstUnit || !firstInput) return false;
 
@@ -82,6 +89,7 @@ const ConverterPage = () => {
         }
     };
 
+    // Perform the conversion via API and update the result
     const handleButtonClick = async () => {
         try {
             const res = await ConverterService.getConversion(
@@ -101,6 +109,7 @@ const ConverterPage = () => {
         }
     };
 
+    // Dynamically render the correct form based on the selected function
     const renderForm = () => {
         if (!selectedConverter) return null;  
         
@@ -183,6 +192,7 @@ const ConverterPage = () => {
         }
     };
 
+    // Render the converter UI
     return (
         <div className="converter-container">
             <CustomButton onClick={() => navigate(-1)} text="Back" className="back-btn" />

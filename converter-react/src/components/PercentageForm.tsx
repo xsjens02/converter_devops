@@ -1,20 +1,23 @@
 import { CustomInput } from "./CustomInput";
 import { CustomOption } from "./CustomOption";
 import { CustomResult } from "./CustomResult";
+
+// Define the props for the PercentageForm component
 interface PercentageFormProps {
-    part: string;
-    whole: string;
-    onChangePart: (val: string) => void; 
-    onChangeWhole: (val: string) => void;
-    unitTypes: string[];
-    partValue: string;
-    wholeValue: string;
-    onChangePartValue: (val: string) => void;
-    onChangeWholeValue: (val: string) => void;
-    result: string;
-    className?: string;
+    part: string; // Selected unit for the "part" value
+    whole: string; // Selected unit for the "whole" value
+    onChangePart: (val: string) => void; // Handler for changing the "part" unit
+    onChangeWhole: (val: string) => void; // Handler for changing the "whole" unit
+    unitTypes: string[]; // Array of available unit types to choose from
+    partValue: string; // Numeric input value representing the "part"
+    wholeValue: string; // Numeric input value representing the "whole"
+    onChangePartValue: (val: string) => void; // Handler for changing the part's value
+    onChangeWholeValue: (val: string) => void; // Handler for changing the whole's value
+    result: string; // Calculated percentage result
+    className?: string; // Optional additional class name for styling
 }
 
+// A form to calculate percentage: (part / whole) * 100
 export const PercentageForm: React.FC<PercentageFormProps> = ({ 
     part,
     whole,

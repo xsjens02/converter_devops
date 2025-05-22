@@ -6,8 +6,10 @@ import "./MemoryPage.css";
 const MemoryPage = () => {
     const navigate = useNavigate();
 
+    // State to store the memory items
     const [memory, setMemory] = useState<string[]>([]);
 
+    // Function to fetch memory history from the converter service
     const fetchMemory = async () => {
         try {
             const data = await ConverterService.getMemory();
@@ -17,10 +19,12 @@ const MemoryPage = () => {
         }
     }
 
+    // Fetch memory on component mount
     useEffect(() => {
         fetchMemory();
     }, []);
 
+    // Render the full converter memory UI
     return (
         <div className="memory-container">
             <CustomButton onClick={() => navigate(-1)} text="Back" className="back-btn" />
